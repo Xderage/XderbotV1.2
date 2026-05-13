@@ -563,21 +563,22 @@ def attempt_march_with_status_logic(increment_counter: str = None):
         return True
 
     print("March not found. Checking unit statuses (return/idle => FREE)...")
-    ret_box = locate_one(returning_unit_path, confidence=CONFIDENCE)
+    #look for idle units
     idle_box = locate_one(idle_unit_path, confidence=CONFIDENCE)
-
-    # If either status is present, click it (units free), then try March
-    if  idle_box:
+    
+    if idle_box:
         status_box = idle_box
-
-    elif ret_box:
-        status_box = ret_box
-    #exit if status isnt found
     else:
-        print("No unit status icons detected (BUSY). ESC.")
-        press_esc_twice()
-        return False
-
+        #look for returning units
+        ret_box = locate_one(returning_unit_path, confidence=CONFIDENCE)
+        if not ret_box:
+            #exit if no free unit isnt found
+            print("No unit status icons detected (BUSY). ESC.")
+            press_esc_twice()
+            return False
+        status_box = ret_box
+    
+    
         
     center = pyautogui.center(status_box)
     print(f"Clicking status {status_box} (FREE), then searching March...")
@@ -859,9 +860,11 @@ def detect_and_terminate_if_other_login(root, show_status_fn):
         running = False
         try:
             if root:
+                print(f'Attempting to Exit')
+                pytime.sleep(1)
                 root.destroy()
         except Exception:
-            pass
+            print(f"Error destroying root: {e}")
         return True
     return False
 
@@ -900,7 +903,7 @@ def reorient_screen():
 # =========================
 # LOOP & GUI
 # =========================
-def run_selected_tasks(task_vars):
+def run_selected_tasks(task_vars, root):
     global paused, running
     while running:
   
@@ -909,7 +912,7 @@ def run_selected_tasks(task_vars):
             continue            
 
         # Check for other-device login and terminate if needed
-        if detect_and_terminate_if_other_login(root=None, show_status_fn=None):
+        if detect_and_terminate_if_other_login(root, show_status_fn = None):
             break
 
         # Click 'Don't Quit' if detected
@@ -1114,7 +1117,7 @@ def start_gui():
     update_time_and_arms_race(root)
 
     # Start tasks automatically (no Run button)
-    threading.Thread(target=run_selected_tasks, args=(task_vars,), daemon=True).start()
+    threading.Thread(target=run_selected_tasks, args=(task_vars, root), daemon=True).start()
 
     # shutdown on close
     def on_close():

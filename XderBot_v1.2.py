@@ -339,7 +339,7 @@ def find_and_click(image_path, description, confidence=CONFIDENCE, region=max_se
     try:
         location = pyautogui.locateCenterOnScreen(image_path, confidence=confidence, region=region)
         if location:
-            print(f"Clicking on {description} at {location}")
+            #print(f"Clicking on {description} at {location}")
             pyautogui.click(location)
             pytime.sleep(0.5)
             return True
@@ -359,7 +359,7 @@ def find_and_click_in_region(image_path, description, region, confidence=CONFIDE
     try:
         center = pyautogui.locateCenterOnScreen(image_path, region=region, confidence=confidence)
         if center:
-            print(f"Clicking on {description} at {center} within region {region}")
+            #print(f"Clicking on {description} at {center} within region {region}")
             pyautogui.click(center)
             pytime.sleep(0.5)
             return True
@@ -587,7 +587,7 @@ def attempt_march_with_status_logic(increment_counter: str = None):
     
     else:
         # only use idle units
-        if task_vars['task2_subtask1'].get():
+        if task_vars['unit_selection'].get() == 'idle only':
             print("No Idle Units Found.")
             press_esc_twice()
             return False
@@ -604,7 +604,7 @@ def attempt_march_with_status_logic(increment_counter: str = None):
     
         
     center = pyautogui.center(status_box)
-    print(f"Clicking status {status_box} (FREE), then searching March...")
+    print(f"Clicking status {status_box} (FREE), attempting to March...")
     pyautogui.click(center)
     pytime.sleep(0.2)  # allow UI update
 
@@ -630,7 +630,7 @@ def attempt_march_with_status_logic(increment_counter: str = None):
             drone_count += 1
         return True
 
-    print("March still not found after clicking status. ESC.")
+    print("March still not found. ESC")
     pyautogui.press('esc')
     return False
 
@@ -728,7 +728,7 @@ def task2():
         return
 
     if not matches_img4:
-        print("No ZOMBIE BOSS (img4) found. Clicking Back.")
+        print("No ZOMBIE BOSS rally found. Clicking Back.")
         find_and_click(back_button_path, 'Back Button')
         return
     sorted_img4 = sorted(matches_img4, key=lambda x: x.top)
@@ -752,7 +752,8 @@ def task2():
         if matches_img3:
             target_img3 = matches_img3[0]
             center = pyautogui.center(target_img3)
-            print(f"Clicking Join Rally at {center}")
+            #print(f"Clicking Join Rally at {center}")
+            print(f'Joining Rally')
             pyautogui.click(center)
             pytime.sleep(0.7)
 
@@ -767,13 +768,13 @@ def task2():
                 if attempt_march_with_status_logic(increment_counter="rally"):
                     return
                 else:                    
-                    print("Join Rally flow did not march.")
+                    print("Unable to march.")
                     press_esc_twice()
                     return
             else:
-                print("March screen not detected after clicking Join Rally. Trying next boss...")
+                print("Join rally failed. Trying next boss...")
                 continue
-    print("No valid Join Rally found. Attempting to exit.")
+    print("No valid Boss Rally found. Attempting to exit.")
     if not find_and_click(back_button_path, 'Back Button'):
         print("Back button not found. Pressing ESC twice.")
         press_esc_twice()
@@ -804,12 +805,12 @@ def task3():
         pyautogui.click(pyautogui.center(alert))
         pytime.sleep(0.7)
 
-    # dig_up_treasure
+    # look for dig_up_treasure coordinates
     if not find_and_click(dig, 'Dig/Drone'):
         return
     
     pytime.sleep(0.7)
-    # dig_main
+    # click dig_main body to join dig
     if not find_and_click(loc, 'event location'):
         print("Excavator/Drone not found. Exiting task3.")
         return
@@ -840,6 +841,8 @@ def task3():
     if not marched:
         print("Dig: March not performed.")
         return
+    
+    ''' # dig logic/ clicking the gift
 
     start_time = pytime.time()
     timeout = 60  # exit plan in case gift was missed by pyautogui as it goes too fast sometimes
@@ -865,7 +868,7 @@ def task3():
         except Exception as e:
             print(e)
             return
-
+    '''
 def detect_and_terminate_if_other_login(root, show_status_fn):
     global running
     notice = locate_one(currently_active_path, confidence=CONFIDENCE)
@@ -917,7 +920,7 @@ def reorient_screen():
         world = None
 
     if base == None and world == None:
-        print(f'base = {base}, world = {world}')
+        print(f'Don\'t panic')
         print("Reorienting view")
         pyautogui.press('esc')
         pyautogui.sleep(0.5)
@@ -1086,14 +1089,15 @@ def start_gui():
     task_vars = {
         'task1': tk.BooleanVar(value=False),  # Tap Help
         'task2': tk.BooleanVar(value=False),  # Join Boss Rally
-        'task2_subtask1' : tk.BooleanVar(value=False), #Idle Troops
+        'unit_selection' : tk.StringVar(value='idle'), #Idle Troops
         'task3': tk.BooleanVar(value=False),  # Join Dig / Drone
     }
 
     ttk.Checkbutton(left_tasks, text="Tap Help", variable=task_vars['task1']).pack(anchor='w', pady=2)
     ttk.Checkbutton(left_tasks, text="Join Boss Rally", variable=task_vars['task2']).pack(anchor='w', pady=2)
-    ttk.Checkbutton(left_tasks, text="Idle Troops Only", variable=task_vars['task2_subtask1']).pack(anchor='w', pady=2, padx=4)
-    #ttk.Checkbutton(left_tasks, text="Join Dig", variable=task_vars['task3']).pack(anchor='w', pady=2)
+    ttk.Radiobutton(left_tasks, text="Idle Only", variable=task_vars['unit_selection'], value="idle").pack(anchor='w', pady=2, padx=8)
+    ttk.Radiobutton(left_tasks, text="Include Returning", variable=task_vars['unit_selection'], value="both").pack(anchor='w', pady=2, padx=8)
+    ttk.Checkbutton(left_tasks, text="Join Dig", variable=task_vars['task3']).pack(anchor='w', pady=2)
 
     # Announcement toggles
     alert_digs_var = tk.BooleanVar(value=False)
@@ -1110,7 +1114,7 @@ def start_gui():
     ttk.Combobox(right_shield, textvariable=shield_duration_var, values=["8hr", "12hr", "24hr"], state="readonly").pack(anchor='w', pady=(2, 6))
 
     # TESTING button
-    ttk.Button(right_shield, text="Use Shield", command=lambda: use_shield(shield_map.get(shield_duration_var.get()))).pack(anchor='w', padx=8, pady=(0, 6))
+    ttk.Button(right_shield, text="Use Shield", command=lambda: use_shield(shield_map.get(shield_duration_var.get()))).pack(anchor='w', padx=12, pady=(0, 6))
 
 
     # ===== Buttons (Run Task) =====

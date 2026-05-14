@@ -566,7 +566,7 @@ def attempt_march_with_status_logic(increment_counter: str = None):
     Returns True if March clicked, else False.
     """
     global rally_count, dig_count, drone_count
-
+    '''
     # 1) Direct attempt
     if find_and_click(march_button_path, 'March Button'):
         if increment_counter == "rally":
@@ -577,17 +577,23 @@ def attempt_march_with_status_logic(increment_counter: str = None):
             drone_count += 1
         else: press_esc_twice()
         return True
-
+    
     print("March not found. Checking unit statuses (return/idle => FREE)...")
+    ''' 
     #look for idle units
     idle_box = locate_one(idle_unit_path, confidence=CONFIDENCE)
+
+    
+    mode = task_vars['unit_selection'].get()
+    print(f"DEBUG unit_selection = [{mode}]")
+
     
     if idle_box:
         status_box = idle_box
     
     else:
         # only use idle units
-        if task_vars['unit_selection'].get() == 'idle only':
+        if task_vars['unit_selection'].get() != 'both':
             print("No Idle Units Found.")
             press_esc_twice()
             return False

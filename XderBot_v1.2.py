@@ -468,6 +468,22 @@ def send_custom_announcement(root):
         # Restore the previous pause state
         paused = was_paused
 
+#======================
+# Print Redirect
+#======================
+
+class PrintRedirector:
+    def __init__(self, text_widget):
+        self.text_widget = text_widget
+
+    def write(self, message):
+        self.text_widget.insert(tk.END, message)
+        self.text_widget.see(tk.END)  # auto-scroll
+
+    def flush(self):
+        pass
+
+
 # =========================
 # SHIELD LOGIC
 # =========================
@@ -568,12 +584,19 @@ def attempt_march_with_status_logic(increment_counter: str = None):
     
     if idle_box:
         status_box = idle_box
+    
     else:
+        # only use idle units
+        if task_vars['task2_subtask1'].get():
+            print("No Idle Units Found.")
+            press_esc_twice()
+            return False
+        
         #look for returning units
         ret_box = locate_one(returning_unit_path, confidence=CONFIDENCE)
         if not ret_box:
             #exit if no free unit isnt found
-            print("No unit status icons detected (BUSY). ESC.")
+            print("All Squads are busy.")
             press_esc_twice()
             return False
         status_box = ret_box
@@ -979,7 +1002,7 @@ def start_gui():
     # Start auto shield thread
     threading.Thread(target=schedule_auto_shield, daemon=True).start()
 
-    global running, alert_digs_var, alert_drone_var
+    global running, alert_digs_var, alert_drone_var, task_vars
     global server_time_var, ar_current_var, ar_next_var, ar_countdown_var, ar_unit_timer_var
 
     # Spawn top-most at x=1721, y=0 
@@ -1063,11 +1086,13 @@ def start_gui():
     task_vars = {
         'task1': tk.BooleanVar(value=False),  # Tap Help
         'task2': tk.BooleanVar(value=False),  # Join Boss Rally
+        'task2_subtask1' : tk.BooleanVar(value=False), #Idle Troops
         'task3': tk.BooleanVar(value=False),  # Join Dig / Drone
     }
 
     ttk.Checkbutton(left_tasks, text="Tap Help", variable=task_vars['task1']).pack(anchor='w', pady=2)
     ttk.Checkbutton(left_tasks, text="Join Boss Rally", variable=task_vars['task2']).pack(anchor='w', pady=2)
+    ttk.Checkbutton(left_tasks, text="Idle Troops Only", variable=task_vars['task2_subtask1']).pack(anchor='w', pady=2, padx=4)
     #ttk.Checkbutton(left_tasks, text="Join Dig", variable=task_vars['task3']).pack(anchor='w', pady=2)
 
     # Announcement toggles
@@ -1100,6 +1125,17 @@ def start_gui():
 
     announce_button = ttk.Button(button_frame, text="Custom Announcement", command=lambda: send_custom_announcement(root))
     announce_button.grid(row=0, column=2, padx=5)
+
+    #====== Status ======
+    
+    log_text = tk.Text(root, height=5, width=45)
+    log_text.pack(padx=10, pady=10)
+
+    
+    sys.stdout = PrintRedirector(log_text)
+    sys.stderr = PrintRedirector(log_text)
+
+
 
     # ===== Stats line =====
     stats_var = tk.StringVar(value="Helps: 0 | Rallies: 0 | Digs: 0 | Drone: 0")
